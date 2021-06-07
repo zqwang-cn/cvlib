@@ -7,11 +7,12 @@ import imagesize
 class CocoBuilder:
     """coco dataset builder
     """
-    def __init__(self, root, task='instances', year=2017, copy_link=True):
+
+    def __init__(self, root='./coco', task='instances', year=2017, copy_link=True):
         """init
 
         Args:
-            root (str): root dir to place coco dataset
+            root (str): root dir to place coco dataset. Defaults to './coco'.
             task (str, optional): coco dataset task. Defaults to 'instances'.
             year (int, optional): coco dataset year. Defaults to 2017.
             copy_link (bool, optional): only copy image link to coco dataset (set False to copy entire image). Defaults to True.
@@ -47,7 +48,15 @@ class CocoBuilder:
         Args:
             filename (str): image filename
         """
-        basename = os.path.basename(filename)
+        main, ext = os.path.splitext(os.path.basename(filename))
+        n = 1
+        while True:
+            basename = '%s_%d%s' % (main, n, ext)
+            destname = os.path.join(self.split_path, basename)
+            if not os.path.exists(destname):
+                break
+            n += 1
+
         width, height = imagesize.get(filename)
         self.image_id += 1
         self.images.append({
@@ -55,11 +64,11 @@ class CocoBuilder:
             'file_name': basename,
             'width': width,
             'height': height
-            })
+        })
         if self.copy_link:
-            os.symlink(os.path.relpath(filename, self.split_path), os.path.join(self.split_path, basename))
+            os.symlink(os.path.relpath(filename, self.split_path), destname)
         else:
-            shutil.copy2(filename, self.split_path)
+            shutil.copy2(filename, destname)
 
     def add_annotation(self, bbox, c):
         """add one annotation to current image
@@ -76,7 +85,7 @@ class CocoBuilder:
             'image_id': self.image_id,
             'bbox': bbox,
             'category_id': self.categories.index(c)+1,
-            })
+        })
 
     def save(self):
         """save current split
